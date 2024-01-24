@@ -1,26 +1,25 @@
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, Subset
 from torch.nn import CrossEntropyLoss
 from dataset import load_dataset_l
 from modelling.Transformer import TransformerModel
 from modelling.LRS import TransformerScheduler, get_optimizer
 from tqdm import tqdm
 import matplotlib.pyplot as plt
-from torch.utils.data import Subset
 
 device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 device = torch.device('cpu')
 print(f"Using {device} for training.")
 
 # Initialize the transformer model
-vocab_size = 50000  # replace with your actual vocab size
-d_model = 128  # replace with your actual d_model
-n_heads = 4  # replace with your actual n_heads
-num_encoder_layers = 4  # replace with your actual num_encoder_layers
-num_decoder_layers = 4  # replace with your actual num_decoder_layers
-dim_feedforward = 64  # replace with your actual dim_feedforward
-dropout = 0.2  # replace with your actual dropout
-max_len = 64  # replace with your actual max_len
+vocab_size = 50000  
+d_model = 128  
+n_heads = 4 
+num_encoder_layers = 4  
+num_decoder_layers = 4  
+dim_feedforward = 64 
+dropout = 0.2 
+max_len = 64  
 
 model = TransformerModel(vocab_size, d_model, n_heads, num_encoder_layers, num_decoder_layers, dim_feedforward, dropout, max_len, device)
 model = model.to(device)
@@ -45,7 +44,7 @@ train_losses = []
 val_losses = []
 
 # Training loop
-for epoch in range(20):
+for epoch in range(30):
     # Training
     model.train()
     total_train_loss = 0
@@ -61,6 +60,8 @@ for epoch in range(20):
         total_train_loss += loss.item()
         train_bar.set_postfix({'batch_train_loss': loss.item()})
     train_losses.append(total_train_loss/len(train_loader))
+
+    torch.save(model.state_dict(), f'models/transformer/model_epoch_{epoch+1}.pth')
 
     # Validation
     model.eval()

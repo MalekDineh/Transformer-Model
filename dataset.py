@@ -3,19 +3,8 @@ import re
 import tqdm
 from datasets import load_dataset, load_from_disk
 from torch.utils.data import Dataset
-from modelling.Tokenizer_New import BPE_Tokenizer
 import torch
 from transformers import AutoTokenizer
-
-# class TranslationDataset(Dataset):
-#     def __init__(self, dataset):
-#         self.dataset = dataset
-
-#     def __len__(self):
-#         return len(self.dataset)
-
-#     def __getitem__(self, idx):
-#         return self.dataset[idx]
 
 class TranslationDataset(Dataset):
     def __init__(self, text, de_tokenizer, en_tokenizer, max_length=64):
@@ -67,23 +56,6 @@ class TranslationDataset(Dataset):
         assert len(de_tokens) == len(en_tokens) == len(de_attention_mask) == len(en_attention_mask) == self.max_length, f"Shape mismatch: de_tokens: {len(de_tokens)}, en_tokens: {len(en_tokens)}, de_attention_mask: {len(de_attention_mask)}, en_attention_mask: {len(en_attention_mask)}, max_length: {self.max_length}"
 
         return [torch.tensor(de_tokens), torch.tensor(de_attention_mask), torch.tensor(en_tokens), torch.tensor(en_attention_mask)]
-
-# class TranslationDataset(Dataset):
-#     def __init__(self, dataset):
-#         self.dataset = dataset
-#         # self.tokenizer = BPE_Tokenizer(50000)
-#         self.tokenizer = Tokenizer.from_file("models/tokenizer_de/tokenizer.json")
-
-#     def __len__(self):
-#         return len(self.dataset)
-
-#     def __getitem__(self, idx):
-#         item = self.dataset[idx]
-#         # item = self.tokenizer.tokenizer.encode(item)
-#         item['de'] = torch.tensor(self.tokenizer.encode(item['de']).ids, dtype=torch.long)
-#         item['en'] = torch.tensor(self.tokenizer.encode(item['en']).ids, dtype=torch.long)
-#         return item
-
 
 
 def load_dataset_l():

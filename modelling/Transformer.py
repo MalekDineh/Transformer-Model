@@ -27,7 +27,3 @@ class TransformerModel(nn.Module):
 
         return self.output_layer(tgt) 
         
-        # memory = self.transformer_encoder(src, src_mask)
-        # output = self.transformer_decoder(tgt, memory, tgt_mask)
-
-        # return self.output_layer(output)
