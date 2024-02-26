@@ -28,17 +28,12 @@ class Attention(nn.Module):
         """
         attention = query @ key.transpose(-1, -2)
 
-        # key.shape[-1] = embed dimension
         attention /= (key.shape[-1] ** 0.5) 
 
-        # mask future for the decoder component
         if self.mask_future:
-            # query.shape[1] = len of input, key.shape[1] = len of output
             forward_mask = torch.tril(torch.ones(query.shape[1], key.shape[1])).to(self.device)
             attention = attention.masked_fill(forward_mask == 0, -torch.inf)
 
-        # mask padding
-        # padding was introduced to make all sentences the same length
         attention_mask = attention_mask.unsqueeze(1).to(self.device)
         attention = attention.masked_fill(attention_mask == 0, -torch.inf)
 
@@ -50,7 +45,7 @@ class Attention(nn.Module):
  
 
 class MultiHeadAttention(nn.Module):
-    def __init__(self, d_model, n_heads, mask_future=False, dropout=0.2, device=torch.device('cpu')) -> None:
+    def __init__(self, d_model, n_heads, mask_future=False, device=torch.device('cpu')) -> None:
         """Multi head attention layer.
 
         Args:
@@ -61,7 +56,7 @@ class MultiHeadAttention(nn.Module):
         """
         super().__init__()
         self.device = device
-        self.dk = d_model // n_heads # dimension of each attention head
+        self.dk = d_model // n_heads
         
         self.query_transform = nn.Linear(d_model, d_model, bias=False)
         self.key_transform = nn.Linear(d_model, d_model, bias=False)
@@ -72,24 +67,18 @@ class MultiHeadAttention(nn.Module):
         self.self_attention = Attention(mask_future=mask_future, device=device)
     
     def forward(self, x_query, x_key, x_value, attention_mask):
-        # apply linear transformations
-        Q = self.query_transform(x_query) # (batch_size, seq_len, d_model)
-        K = self.key_transform(x_key) # (batch_size, seq_len, d_model)
-        V = self.value_transform(x_value) # (batch_size, seq_len, d_model)
+        Q = self.query_transform(x_query)
+        K = self.key_transform(x_key)
+        V = self.value_transform(x_value)
 
-        # split into heads
-        Qs = Q.split(self.dk, dim=-1) # (batch_size, seq_len, dk)
-        Ks = K.split(self.dk, dim=-1) # (batch_size, seq_len, dk)
-        Vs = V.split(self.dk, dim=-1) # (batch_size, seq_len, dk)
+        Qs = Q.split(self.dk, dim=-1) 
+        Ks = K.split(self.dk, dim=-1) 
+        Vs = V.split(self.dk, dim=-1) 
 
-        # pass through attention
         x = []
         for q, k, v in zip(Qs, Ks, Vs):
             x.append(self.self_attention(q, k, v, attention_mask.to(self.device)))
 
-        # concat heads
         x_concat = torch.cat(x, dim=-1)
-
-        # apply output transformation
         x = self.output_transform(x_concat)
         return x

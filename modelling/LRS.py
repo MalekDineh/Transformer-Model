@@ -1,8 +1,10 @@
-import torch
 from torch.optim import AdamW, Optimizer
 from torch.optim.lr_scheduler import _LRScheduler
 
 class TransformerScheduler(_LRScheduler):
+    """
+    Learning rate scheduler for the Transformer model
+    """
     def __init__(self, optimizer: Optimizer, d_model: int, warmup_steps: int, last_epoch: int = -1):
         self.d_model = d_model
         self.warmup_steps = warmup_steps
@@ -19,6 +21,9 @@ class TransformerScheduler(_LRScheduler):
         return self.get_lr()
 
 def get_optimizer(model):
+    """
+    Get the optimizer for the Transformer model
+    """
     no_decay = ['bias', 'LayerNorm.weight']
     optimizer_grouped_parameters = [
         {'params': [p for n, p in model.named_parameters() if not any(nd in n for nd in no_decay)], 'weight_decay': 0.0001},

@@ -4,10 +4,10 @@ import tqdm
 from datasets import load_dataset, load_from_disk
 from torch.utils.data import Dataset
 import torch
-from transformers import AutoTokenizer
+from modelling.Tokenizer import MyGPT2Tokenizer
 
 class TranslationDataset(Dataset):
-    def __init__(self, text, de_tokenizer, en_tokenizer, max_length=64):
+    def __init__(self, text, de_tokenizer, en_tokenizer, max_length=74):
         """The dataset class for the translation task.
 
         Args:
@@ -25,8 +25,8 @@ class TranslationDataset(Dataset):
         self.text = text
         self.de_tokenizer = de_tokenizer
         self.en_tokenizer = en_tokenizer
-        self.pad_token_id_de = de_tokenizer.pad_token_id
-        self.pad_token_id_en = en_tokenizer.pad_token_id
+        self.pad_token_id_de = de_tokenizer.tokenizer.pad_token_id
+        self.pad_token_id_en = en_tokenizer.tokenizer.pad_token_id
         self.max_length = max_length
 
     def __len__(self):
@@ -36,12 +36,12 @@ class TranslationDataset(Dataset):
         de_sentence, en_sentence = self.text[idx]["de"], self.text[idx]["en"]
 
         # Tokenize the sentences
-        de_tokens = self.de_tokenizer.encode(de_sentence)
-        en_tokens = self.en_tokenizer.encode(en_sentence)
+        de_tokens = self.de_tokenizer.tokenizer.encode(de_sentence)
+        en_tokens = self.en_tokenizer.tokenizer.encode(en_sentence)
 
         # pad with BOS and EOS tokens
-        de_tokens = [self.de_tokenizer.bos_token_id] + de_tokens + [self.de_tokenizer.eos_token_id]
-        en_tokens = [self.en_tokenizer.bos_token_id] + en_tokens + [self.en_tokenizer.eos_token_id]
+        de_tokens = [self.de_tokenizer.tokenizer.bos_token_id] + de_tokens + [self.de_tokenizer.tokenizer.eos_token_id]
+        en_tokens = [self.en_tokenizer.tokenizer.bos_token_id] + en_tokens + [self.en_tokenizer.tokenizer.eos_token_id]
 
         # Pad or truncate the sequences to the specified max_length
         de_tokens = de_tokens + [self.pad_token_id_de] * (self.max_length - len(de_tokens))
@@ -57,10 +57,9 @@ class TranslationDataset(Dataset):
 
         return [torch.tensor(de_tokens), torch.tensor(de_attention_mask), torch.tensor(en_tokens), torch.tensor(en_attention_mask)]
 
-
 def load_dataset_l():
-    de_tokenizer = AutoTokenizer.from_pretrained("models/tokenizer_de")
-    en_tokenizer = AutoTokenizer.from_pretrained("models/tokenizer_en")
+    en_tokenizer = MyGPT2Tokenizer(prefix="en")
+    de_tokenizer = MyGPT2Tokenizer(prefix="de")
     ds = load_from_disk('data/wmt17_de-en_cleaned.hf')
 
     train_ds = TranslationDataset(ds['train'], de_tokenizer, en_tokenizer)
@@ -79,7 +78,7 @@ def clean_dataset(dataset, min_length=5, max_length=64, max_ratio=1.5):
         text = text.encode("utf-8", "ignore").decode("utf-8")
 
         # Remove URLs and HTML tags
-        text = re.sub(r"http[s]?://(?:[a-zA-Z]|[0-9]|[$-_@.&+]|[!*\\(\\),]|(?:%[0-9a-fA-F][0-9a-fA-F]))+", "", text)
+        text = re.sub(r"http\S+|www.\S+|https\S+", '', text, flags=re.MULTILINE)
         text = re.sub(r"<.*?>", "", text)
 
         # Remove characters not in the whitelist
@@ -95,8 +94,8 @@ def clean_dataset(dataset, min_length=5, max_length=64, max_ratio=1.5):
         }
 
         for data in tqdm.tqdm(dataset[split], desc = split):
-            src_text = data["translation"]["de"]
-            tgt_text = data["translation"]["en"]
+            src_text = data["translation"]["en"]
+            tgt_text = data["translation"]["de"]
 
             # Clean source and target texts
             src_text = clean_text(src_text)
@@ -107,8 +106,8 @@ def clean_dataset(dataset, min_length=5, max_length=64, max_ratio=1.5):
                 # Check the ratio between source and target lengths
                 ratio = len(src_text) / len(tgt_text)
                 if 1/max_ratio <= ratio <= max_ratio:
-                    data_split['de'].append(src_text)
-                    data_split['en'].append(tgt_text)
+                    data_split['en'].append(src_text)
+                    data_split['de'].append(tgt_text)
 
         cleaned_dataset[split] = datasets.Dataset.from_dict(data_split)
     return cleaned_dataset

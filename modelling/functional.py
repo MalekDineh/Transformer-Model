@@ -1,6 +1,5 @@
 from torch import nn
 import torch
-
 from modelling.attention import MultiHeadAttention
 
 class FeedForward(nn.Module):
@@ -11,11 +10,10 @@ class FeedForward(nn.Module):
             input_dim: Embedding dimension of the input. 
             feature_dim: Hidden dimension of the position wise feed forward layer.
         """
-        # Practical 7: feature_dim is the hidden dimension of the position wise feed forward layer
         super().__init__()
 
-        self.linear1 = nn.Linear(input_dim, feature_dim) # was n_embed, n_embed*4
-        self.linear2 = nn.Linear(feature_dim, input_dim) # was n_embed*4, n_embed
+        self.linear1 = nn.Linear(input_dim, feature_dim)
+        self.linear2 = nn.Linear(feature_dim, input_dim)
 
         self.relu = nn.ReLU()
 
@@ -43,7 +41,7 @@ class BaseTransformerLayer(nn.Module):
         """
         super().__init__()
         self.device = device
-        self.self_attention = MultiHeadAttention(input_dim, num_heads, mask_future=False, device=device) # no future masking in the encoder
+        self.self_attention = MultiHeadAttention(input_dim, num_heads, mask_future=False, device=device) 
         self.feature_transformation = FeedForward(input_dim, feature_dim)
         
         self.layer_norm_1 = nn.LayerNorm(input_dim)
@@ -92,7 +90,7 @@ class TransformerDecoderLayer(nn.Module):
         """
         super().__init__()
         self.device = device
-        self.self_attention = MultiHeadAttention(input_dim, num_heads, mask_future=True, device=device) # future masking in the decoder
+        self.self_attention = MultiHeadAttention(input_dim, num_heads, mask_future=True, device=device) 
         self.encoder_attention = MultiHeadAttention(input_dim, num_heads, mask_future=False, device=device)
         self.feature_transformation = FeedForward(input_dim, feature_dim)
 
@@ -119,7 +117,6 @@ class TransformerDecoderLayer(nn.Module):
 
         x = self.layer_norm_1(x + y)
 
-        # in cross attention, the query comes from the decoder and the key and value come from the encoder
         y = self.encoder_attention(x, encoder, encoder, encoder_attention_mask.to(self.device))
         y *= attention_mask.unsqueeze(-1).float() 
 

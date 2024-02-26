@@ -3,7 +3,17 @@ import torch.nn as nn
 import math
 
 class PositionalEncoding(nn.Module):
+    """
+    Positional Encoding for the Transformer model
+    """
     def __init__(self, d_model, max_len=512, device=torch.device('cpu')):
+        """
+        Args:
+            d_model (int): The dimension of the model
+            max_len (int, optional): The maximum length of the input sequence. Defaults to 512.
+            device (torch.device, optional): The device to use. Defaults to torch.device('cpu').
+            
+        """
         super(PositionalEncoding, self).__init__()
         self.encoding = torch.zeros(max_len, d_model)
         self.device = device
