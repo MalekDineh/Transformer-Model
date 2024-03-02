@@ -1,5 +1,4 @@
 import json
-from os import path
 from transformers import GPT2Tokenizer
 from tokenizers import Tokenizer
 from tokenizers import pre_tokenizers
@@ -7,33 +6,22 @@ from tokenizers import trainers
 from tokenizers import models
 
 class MyGPT2Tokenizer:
-    def __init__(
-            self,
-            prefix="en",
-            add_bos_token=False):
+    def __init__(self,prefix="en",add_bos_token=False):
+        self.tokenizer = GPT2Tokenizer(vocab_file=f"data/tokenizer/{prefix}_vocab.json", merges_file=f"data/tokenizer/{prefix}_merges.json",unk_token="[UNK]",bos_token="[BOS]",eos_token="[EOS]",pad_token="[PAD]",add_bos_token=add_bos_token)
         
-        self.tokenizer = GPT2Tokenizer(
-            vocab_file=f"data/tokenizer/{prefix}_vocab.json", 
-            merges_file=f"data/tokenizer/{prefix}_merges.json",
-            unk_token="[UNK]",
-            bos_token="[BOS]",
-            eos_token="[EOS]",
-            pad_token="[PAD]",
-            add_bos_token=add_bos_token)
-        
-    def encode(self, in_text):
-        if isinstance(in_text, list):
-            return [self.tokenizer.encode(text.lower()) for text in in_text]
-        elif isinstance(in_text, str):
-            return self.tokenizer.encode(in_text.lower())
+    def encode(self, text):
+        if isinstance(text, list):
+            return [self.tokenizer.encode(txt.lower()) for txt in text]
+        elif isinstance(text, str):
+            return self.tokenizer.encode(text.lower())
         else:
             raise TypeError("Input must be of type list or string.")
     
-    def decode(self, in_tokens):
-        if isinstance(in_tokens[0], list):
-            return [self.tokenizer.decode(tokens) for tokens in in_tokens]
-        elif isinstance(in_tokens[0], int):
-            return self.tokenizer.decode(in_tokens)
+    def decode(self, tokens):
+        if isinstance(tokens[0], list):
+            return [self.tokenizer.decode(token) for token in tokens]
+        elif isinstance(tokens[0], int):
+            return self.tokenizer.decode(tokens)
         else:
             raise TypeError("Input must be of type list or int.")
 
@@ -43,8 +31,7 @@ def prepare_data_for_gpt_tokenizer(text_data):
     Args:
         text_data (list): List of dictionaries with the keys "de" and "en".
     """
-
-    de_tokenizer, en_tokenizer = tokenize_translation_task(text_data)
+    de_tokenizer, en_tokenizer = tokenize_data(text_data)
 
     # save complete tokenizers as json files
     de_tokenizer.save_tokenizer("de")
@@ -59,7 +46,7 @@ def prepare_data_for_gpt_tokenizer(text_data):
         with open(f"data/tokenizer/{prefix}_merges.json", "w") as f:
             json.dump(data["model"]["merges"], f)
 
-def tokenize_translation_task(text_data, max_vocab_length=50_000):
+def tokenize_data(text_data, max_vocab_length=50_000):
     """Tokenizes the text data and returns the vocabularies and tokenizers.
 
     Args:
@@ -77,8 +64,8 @@ def tokenize_translation_task(text_data, max_vocab_length=50_000):
     en_tokenizer = HuggBPETokenizer(max_vocab_size=max_vocab_length)
 
     # train tokenizers
-    de_tokenizer.train_from_iterator(de_data)
-    en_tokenizer.train_from_iterator(en_data)
+    de_tokenizer.train_on_data(de_data)
+    en_tokenizer.train_on_data(en_data)
 
     return de_tokenizer, en_tokenizer
 
@@ -87,14 +74,10 @@ class HuggBPETokenizer:
     def __init__(self, max_vocab_size=50_000):
         self.tokenizer = Tokenizer(models.BPE())
         self.tokenizer.pre_tokenizer = pre_tokenizers.ByteLevel()
-        self.trainer = trainers.BpeTrainer(
-            special_tokens=["[PAD]", "[BOS]", "[EOS]", "[UNK]"],
-            unk_token="[UNK]",
-            vocab_size=max_vocab_size,            
-        )
+        self.trainer = trainers.BpeTrainer(special_tokens=["[PAD]", "[BOS]", "[EOS]", "[UNK]"],unk_token="[UNK]",vocab_size=max_vocab_size)
 
-    def train_from_iterator(self, iterator):
-        self.tokenizer.train_from_iterator(iterator, trainer=self.trainer)
+    def train_on_data(self, data):
+        self.tokenizer.train_from_iterator(data, trainer=self.trainer)
 
     def save_tokenizer(self, prefix: str):
         self.tokenizer.save(f"data/tokenizer/{prefix}_tokenizer.json", pretty=True)

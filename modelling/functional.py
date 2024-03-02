@@ -109,7 +109,10 @@ class TransformerDecoderLayer(nn.Module):
             encoder_attention_mask: Mask for the encoder attention.
             attention_mask: Mask for the decoder attention.
         """
-        y = self.self_attention(x, x, x, attention_mask.to(self.device))
+
+        if attention_mask is not None:
+            attention_mask = attention_mask.to(self.device)
+        y = self.self_attention(x, x, x, attention_mask)
         y *= attention_mask.unsqueeze(-1).float() 
 
         if self.dropout:
@@ -117,7 +120,9 @@ class TransformerDecoderLayer(nn.Module):
 
         x = self.layer_norm_1(x + y)
 
-        y = self.encoder_attention(x, encoder, encoder, encoder_attention_mask.to(self.device))
+        if encoder_attention_mask is not None:
+            encoder_attention_mask = encoder_attention_mask.to(self.device)
+        y = self.encoder_attention(x, encoder, encoder, encoder_attention_mask)
         y *= attention_mask.unsqueeze(-1).float() 
 
         if self.dropout:

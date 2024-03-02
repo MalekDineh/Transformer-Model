@@ -25,5 +25,6 @@ class TransformerModel(nn.Module):
         for layer in self.transformer_decoder:
             tgt = layer(tgt, src, src_mask, tgt_mask)
 
-        return self.output_layer(tgt) 
+        return self.output_layer(tgt)
+
         
