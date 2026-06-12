@@ -1,0 +1,74 @@
+
+{
+  "name": "Lab Pipeline Validation Workflow with Conditional Execution - 2026-06-12",
+  "email_notifications": {
+    "on_failure": ["labuser15508867_1781261875@vocareum.com"],
+    "on_success": ["labuser15508867_1781261875@vocareum.com"]
+  },
+  "tasks": [
+    {
+      "task_key": "data_cleaning",
+      "notebook_task": {
+        "notebook_path": "/Users/labuser15508867_1781261875@vocareum.com/advanced-machine-learning-operations-en_us-1.2.8/M01 - Streamlining MLOps with Databricks/1.2 Lab - Pipeline workflow notebooks/01 - Data Cleaning and Transformation",
+        "source": "WORKSPACE"
+      },
+      "existing_cluster_id": "0612-105848-x26z9maa",
+      "timeout_seconds": 600,
+      "run_if": "ALL_SUCCESS"
+    },
+    {
+      "task_key": "feature_engineering",
+      "depends_on": [{"task_key": "data_cleaning"}],
+      "notebook_task": {
+        "notebook_path": "/Users/labuser15508867_1781261875@vocareum.com/advanced-machine-learning-operations-en_us-1.2.8/M01 - Streamlining MLOps with Databricks/1.2 Lab - Pipeline workflow notebooks/02 - Feature Engineering and Model Training",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "max_depth": "5",
+          "n_estimators": "100",
+          "subsample": "1.0"
+        }
+      },
+      "existing_cluster_id": "0612-105848-x26z9maa",
+      "timeout_seconds": 600,
+      "run_if": "ALL_SUCCESS"
+    },
+    {
+      "task_key": "conditional_execution",
+      "depends_on": [{"task_key": "feature_engineering"}],
+      "condition_task": {
+        "op": "EQUAL_TO",
+        "left": "{{tasks.feature_engineering.values.feature_engineering_status}}",
+        "right": "SUCCESS"
+      },
+      "timeout_seconds": 0
+    },
+    {
+      "task_key": "failure_handling",
+      "depends_on": [{"task_key": "conditional_execution", "outcome": "false"}],
+      "spark_python_task": {
+        "python_file": "/Users/labuser15508867_1781261875@vocareum.com/advanced-machine-learning-operations-en_us-1.2.8/M01 - Streamlining MLOps with Databricks/1.2 Lab - Pipeline workflow notebooks/03 - failure_handling.py",
+        "parameters": [
+          "-e",
+          "NonExistentColumn: Column not found in the dataset"
+        ]
+      },
+      "existing_cluster_id": "0612-105848-x26z9maa",
+      "timeout_seconds": 600
+    },
+    {
+      "task_key": "model_evaluation",
+      "depends_on": [{"task_key": "conditional_execution", "outcome": "true"}],
+      "notebook_task": {
+        "notebook_path": "/Users/labuser15508867_1781261875@vocareum.com/advanced-machine-learning-operations-en_us-1.2.8/M01 - Streamlining MLOps with Databricks/1.2 Lab - Pipeline workflow notebooks/04 - Model Evaluation and Testing with Accuracy Check",
+        "source": "WORKSPACE",
+        "base_parameters": {
+          "max_depth": "5",
+          "n_estimators": "100",
+          "subsample": "1.0"
+        }
+      },
+      "existing_cluster_id": "0612-105848-x26z9maa",
+      "timeout_seconds": 600
+    }
+  ]
+}
